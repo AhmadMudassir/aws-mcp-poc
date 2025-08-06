@@ -13,20 +13,24 @@ const PORT = 3001;
 function cleanOutput(data) {
   let text = data.toString();
 
-  // Remove ANSI escape codes
-  text = text.replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, "");
+  // Remove ANSI escape codes but keep spacing
+  text = text.replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, " ");
+
+  // Convert multiple spaces/tabs into one
+  text = text.replace(/\s+/g, " ");
 
   // Remove spinner frames
   text = text.replace(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/g, "");
 
-  // Remove "Thinking..." and noisy banners
+  // Remove banners, Thinking..., etc.
   text = text.replace(/ERROR:.*|Thinking\.\.\.|All tools are now trusted.*|🤖.*$/gm, "");
 
-  // Remove extra empty lines
+  // Remove empty lines
   text = text.split("\n").filter(line => line.trim() !== "").join("\n");
 
   return text.trim();
 }
+
 
 // Serve frontend
 app.use(express.static(path.join(__dirname, "public")));
