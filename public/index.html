@@ -2,7 +2,9 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Amazon Q CLI Live Chat</title>
+  <title>Q CLI Live Chat (WebSockets)</title>
+
+  <!-- Base styles -->
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -44,21 +46,45 @@
     .message {
       margin: 5px 0;
     }
-    h1 {
-      margin: 0;
-      padding: 10px;
-      text-align: center;
-      background: #111;
-      border-bottom: 1px solid #333;
+    /* Markdown container */
+    .markdown-body {
+      background: #fff;
+      color: #000;
+      border-radius: 6px;
+      padding: 16px;
+      overflow-x: auto;
     }
-    strong {
-      color: #0f0;
+    /* Adjust for dark background page */
+    .markdown-body pre {
+      background-color: #0d1117 !important;
+      color: #c9d1d9 !important;
     }
   </style>
+
+  <!-- GitHub Markdown CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+
+  <!-- Highlight.js for code syntax -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <!-- Marked.js for Markdown parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <script>
+    // Configure Marked to use Highlight.js
+    marked.setOptions({
+      breaks: true,
+      highlight: function(code, lang) {
+        const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+        return hljs.highlight(code, { language }).value;
+      }
+    });
+  </script>
 </head>
 <body>
   <div class="chat-container">
-    <h1>Amazon Q CLI Chat</h1>
+    <h1 style="text-align:center;">Amazon Q CLI Chat</h1>
     <div id="output" class="chat-box"></div>
     <div class="input-container">
       <input id="question" type="text" placeholder="Type your question..." />
@@ -67,17 +93,30 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
     const socket = io();
     const output = document.getElementById("output");
     const questionInput = document.getElementById("question");
     const sendBtn = document.getElementById("sendBtn");
 
+    // Detect if message looks like a markdown file content
+    function isMarkdownMessage(text) {
+      return text.includes("## ") || text.includes("|") || text.includes("```");
+    }
+
     socket.on("cliOutput", (data) => {
       const div = document.createElement("div");
       div.classList.add("message");
-      div.innerHTML = marked.parse(data); // Markdown rendering
+
+      if (isMarkdownMessage(data)) {
+        // Render as GitHub-style markdown
+        div.classList.add("markdown-body");
+        div.innerHTML = marked.parse(data);
+      } else {
+        // Render as normal chat message
+        div.innerHTML = data;
+      }
+
       output.appendChild(div);
       output.scrollTop = output.scrollHeight;
     });
