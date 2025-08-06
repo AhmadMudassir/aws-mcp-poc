@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Amazon Q CLI Chat</title>
+<title>Amazon Q CLI Live Chat</title>
 
 <!-- GitHub Dark Markdown CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown-dark.min.css">
@@ -11,117 +11,119 @@
 
 <style>
   body {
-    background-color: #0d1117;
-    color: #ddd;
-    font-family: Consolas, monospace;
+    background: #000;
+    color: #fff;
     margin: 0;
+    font-family: Consolas, monospace;
+  }
+  .chat-container {
     display: flex;
     flex-direction: column;
     height: 100vh;
   }
-  #chat-container {
-    flex: 1;
+  h1 {
+    margin: 0;
     padding: 10px;
+    text-align: center;
+    background: #111;
+    border-bottom: 1px solid #333;
+  }
+  .chat-box {
+    flex: 1;
     overflow-y: auto;
-  }
-  .message {
-    margin-bottom: 12px;
-    padding: 8px;
-    border-radius: 5px;
-    max-width: 90%;
-    word-break: break-word;
-  }
-  .message.user {
-    background-color: #161b22;
-    color: #0f0;
-    margin-left: auto;
-    margin-right: 0;
-    text-align: left; /* keep text left */
-  }
-  .message.assistant {
-    background-color: #1c1f26;
-    color: #ddd;
-    text-align: left;
-  }
-  .markdown-body {
-    background-color: transparent !important;
-    color: #ddd;
-    padding: 5px;
-    border-radius: 6px;
-    font-size: 0.95rem;
-  }
-  #input-container {
-    display: flex;
     padding: 10px;
-    border-top: 1px solid #333;
-    background-color: #161b22;
+    background: #0d1117; /* GitHub dark background */
   }
-  #user-input {
+  .input-container {
+    display: flex;
+    background: #161b22;
+    padding: 5px;
+    border-top: 1px solid #333;
+  }
+  #question {
     flex: 1;
-    background-color: #0d1117;
+    padding: 10px;
+    background: #0d1117;
+    color: white;
     border: 1px solid #333;
-    color: #ddd;
-    padding: 8px;
     border-radius: 5px;
   }
-  #send-btn {
-    background-color: #238636;
+  #sendBtn {
+    background: #238636;
     border: none;
-    padding: 8px 12px;
+    padding: 10px 15px;
     margin-left: 8px;
     color: white;
     border-radius: 5px;
     cursor: pointer;
   }
+  .message {
+    margin-bottom: 12px;
+    max-width: 90%;
+    word-break: break-word;
+  }
+  .message.user {
+    text-align: right;
+    color: #0f0;
+  }
+  .markdown-body {
+    background-color: transparent !important;
+    color: #ddd;
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+  }
 </style>
 </head>
 <body>
 
-<div id="chat-container"></div>
-
-<div id="input-container">
-  <input type="text" id="user-input" placeholder="Type your question..." />
-  <button id="send-btn">Ask</button>
+<div class="chat-container">
+  <h1>Amazon Q CLI Chat</h1>
+  <div id="output" class="chat-box"></div>
+  <div class="input-container">
+    <input id="question" type="text" placeholder="Type your question..." />
+    <button id="sendBtn">Ask</button>
+  </div>
 </div>
 
+<script src="/socket.io/socket.io.js"></script>
 <script>
-  function isMarkdownMessage(text) {
-    const trimmed = text.trim();
-    const mdPatterns = [
-      /^#{1,6}\s/, /^\|.*\|/, /\|[-:]+\|/, /\*\*.*\*\*/, /\*[^*]+\*/,
-      /^> /, /```[\s\S]*```/, /^- /m, /^(\d+\.\s)/m, /^📊/, /\.md$/i
-    ];
-    return mdPatterns.some((pattern) => pattern.test(trimmed));
-  }
+  const socket = io();
+  const output = document.getElementById("output");
+  const questionInput = document.getElementById("question");
+  const sendBtn = document.getElementById("sendBtn");
 
-  function renderMessage(role, text) {
-    const chatContainer = document.getElementById("chat-container");
-    const messageDiv = document.createElement("div");
-    messageDiv.className = `message ${role}`;
-
-    if (isMarkdownMessage(text)) {
-      messageDiv.innerHTML = `<div class="markdown-body">${marked.parse(text)}</div>`;
+  // Function to detect markdown and render
+  function renderMarkdownMessage(role, text) {
+    const div = document.createElement("div");
+    div.classList.add("message", role);
+    if (role === "assistant") {
+      div.innerHTML = `<div class="markdown-body">${marked.parse(text)}</div>`;
     } else {
-      messageDiv.textContent = text;
+      div.innerHTML = `<strong>> ${text}</strong>`;
     }
-
-    chatContainer.appendChild(messageDiv);
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+    output.appendChild(div);
+    output.scrollTop = output.scrollHeight;
   }
 
-  function sendMessage() {
-    const input = document.getElementById("user-input");
-    if (!input.value.trim()) return;
-    renderMessage("user", input.value);
-    input.value = "";
-  }
+  // Receive backend output
+  socket.on("cliOutput", (data) => {
+    renderMarkdownMessage("assistant", data);
+  });
 
-  document.getElementById("send-btn").addEventListener("click", sendMessage);
-  document.getElementById("user-input").addEventListener("keypress", function(e) {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      sendMessage();
+  // Send question to backend
+  sendBtn.onclick = () => {
+    const question = questionInput.value.trim();
+    if (question) {
+      renderMarkdownMessage("user", question);
+      socket.emit("askQuestion", question);
+      questionInput.value = "";
     }
+  };
+
+  // Enter key sends message
+  questionInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendBtn.click();
   });
 </script>
 
