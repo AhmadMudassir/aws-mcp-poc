@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Q CLI Live Chat</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="chat-container">
+    <h1>Amazon Q CLI Chat</h1>
+    <div id="output" class="chat-box"></div>
+    <div class="input-container">
+      <input id="question" type="text" placeholder="Type your question..." />
+      <button id="sendBtn">Ask</button>
+    </div>
+  </div>
+
+  <script>
+    function startStream(question) {
+      const output = document.getElementById("output");
+      output.innerHTML = ""; // Clear previous output
+
+      const evtSource = new EventSource(`/stream?q=${encodeURIComponent(question)}`);
+      evtSource.onmessage = function(event) {
+        if (event.data === "[DONE]") {
+          evtSource.close();
+        } else {
+          output.textContent += event.data + "\n";
+          output.scrollTop = output.scrollHeight;
+        }
+      };
+    }
+
+    document.getElementById("sendBtn").addEventListener("click", () => {
+      const question = document.getElementById("question").value.trim();
+      if (question) {
+        startStream(question);
+      }
+    });
+  </script>
+</body>
+</html>

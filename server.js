@@ -1,59 +1,39 @@
 const express = require("express");
 const { spawn } = require("child_process");
-const cors = require("cors");
-require("dotenv").config()
+const path = require("path");
+
 const app = express();
-app.use(cors());
-app.use(express.json());
+const PORT = 3001;
 
-// Helper: filter out CLI noise
-function cleanOutput(raw) {
-  return raw
-    .split("\n")
-    .filter(line => {
-      return !(
-        line.trim() === "" ||
-        line.includes("/help") ||
-        line.includes("Did you know?") ||
-        line.includes("All tools are now trusted") ||
-        line.startsWith("🛠️") ||
-        line.startsWith("⋮") ||
-        line.startsWith("●") ||
-        line.startsWith("╭") ||
-        line.startsWith("╰") ||
-        line.startsWith("│") ||
-        line.startsWith("⢠") ||
-        line.startsWith("⣿") ||
-        line.startsWith("━━━━━━━━")
-      );
-    })
-    .join("\n")
-    .trim();
-}
+// Serve static files from public folder
+app.use(express.static(path.join(__dirname, "public")));
 
-app.post("/query", (req, res) => {
-  const question = req.body.question;
-  let output = "";
+// SSE endpoint for streaming output
+app.get("/stream", (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
 
-  const cmd = spawn(
-    "bash",
-    ["-i", "-c", `q chat --no-interactive --trust-all-tools "${question}"`],
-    {
-        env: process.env
-    });
+  // Change the question here or pass via query
+  const question = req.query.q || "whats my bill of july";
 
-  cmd.stdout.on("data", (data) => {
-    output += data.toString();
+  // Spawn Q CLI in interactive bash so AWS creds & env load
+  const cmd = spawn("bash", ["-i", "-c", `q chat --no-interactive --trust-all-tools "${question}"`]);
+
+  cmd.stdout.on("data", (chunk) => {
+    res.write(`data: ${chunk.toString()}\n\n`);
   });
 
-  cmd.stderr.on("data", (data) => {
-    console.error("Error:", data.toString());
+  cmd.stderr.on("data", (chunk) => {
+    res.write(`data: ERROR: ${chunk.toString()}\n\n`);
   });
 
   cmd.on("close", () => {
-    const cleaned = cleanOutput(output);
-    res.json({ result: cleaned });
+    res.write("data: [DONE]\n\n");
+    res.end();
   });
 });
 
-app.listen(3001, () => console.log("Backend running on port 3001"));
+app.listen(PORT, () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+});
