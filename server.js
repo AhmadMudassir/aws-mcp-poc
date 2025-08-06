@@ -1,37 +1,43 @@
 const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
 const { spawn } = require("child_process");
 const path = require("path");
-const http = require("http");
-const socketIo = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
-
+const io = new Server(server);
 const PORT = 3001;
 
-// Serve static files from public folder
+// Serve frontend files
 app.use(express.static(path.join(__dirname, "public")));
 
+// Spawn Q CLI in interactive mode (persistent session)
+const qProcess = spawn("bash", ["-i", "-c", "q chat --trust-all-tools"], {
+  stdio: ["pipe", "pipe", "pipe"]
+});
+
+// Handle Q CLI stdout
+qProcess.stdout.on("data", (chunk) => {
+  const text = chunk.toString();
+  io.emit("cliOutput", text);
+});
+
+// Handle Q CLI stderr
+qProcess.stderr.on("data", (chunk) => {
+  const text = chunk.toString();
+  io.emit("cliOutput", `ERROR: ${text}`);
+});
+
+qProcess.on("close", () => {
+  io.emit("cliOutput", "[CLI SESSION ENDED]");
+});
+
 io.on("connection", (socket) => {
-  console.log("🔌 Client connected");
+  console.log("✅ Client connected");
 
   socket.on("askQuestion", (question) => {
-    console.log(`📩 Question: ${question}`);
-
-    const cmd = spawn("bash", ["-i", "-c", `q chat --no-interactive --trust-all-tools "${question}"`]);
-
-    cmd.stdout.on("data", (chunk) => {
-      socket.emit("cliOutput", chunk.toString());
-    });
-
-    cmd.stderr.on("data", (chunk) => {
-      socket.emit("cliOutput", `ERROR: ${chunk.toString()}`);
-    });
-
-    cmd.on("close", () => {
-      socket.emit("cliOutput", "[DONE]");
-    });
+    qProcess.stdin.write(`${question}\n`);
   });
 
   socket.on("disconnect", () => {
@@ -40,5 +46,5 @@ io.on("connection", (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
