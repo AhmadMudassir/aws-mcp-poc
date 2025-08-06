@@ -11,38 +11,32 @@ const PORT = 3001;
 
 app.use(express.static(path.join(__dirname, "public")));
 
-// Function to strip ANSI escape sequences and clean output
+// Function to strip ANSI and noisy output
 function cleanOutput(data) {
   return data
     .toString()
-    .replace(/\x1B\[[0-9;]*[A-Za-z]/g, "") // strip ANSI codes
-    .replace(/⠋|⠙|⠹|⠸|⠼|⠴|⠦|⠧|⠇|⠏/g, "") // spinner symbols
-    .replace(/^ERROR:.*$/gm, "") // remove lines starting with ERROR:
-    .replace(/\[0m|\[39m|\[22m/g, "") // leftover ANSI resets
-    .replace(/\n{3,}/g, "\n\n") // collapse extra newlines
+    .replace(/\x1B\[[0-9;]*[A-Za-z]/g, "") // ANSI codes
+    .replace(/⠋|⠙|⠹|⠸|⠼|⠴|⠦|⠧|⠇|⠏/g, "") // spinners
+    .replace(/^ERROR:.*$/gm, "") // ERROR lines
+    .replace(/\[0m|\[39m|\[22m/g, "") // ANSI reset leftovers
+    .replace(/\n{3,}/g, "\n\n") // collapse blank lines
     .trim();
 }
 
-// Start Q CLI process
+// Start Q CLI session
 const qProcess = spawn("bash", ["-i", "-c", "q chat --trust-all-tools"], {
   stdio: ["pipe", "pipe", "pipe"]
 });
 
-let buffer = "";
-
-// Capture stdout
+// Stream stdout to browser
 qProcess.stdout.on("data", (chunk) => {
-  buffer += chunk.toString();
-
-  // Emit when Q finishes thinking (simple signal)
-  if (buffer.includes("> ") && buffer.includes("🤖 You are chatting with")) {
-    const cleaned = cleanOutput(buffer);
-    if (cleaned) io.emit("cliOutput", cleaned);
-    buffer = ""; // reset buffer
+  const cleaned = cleanOutput(chunk);
+  if (cleaned) {
+    io.emit("cliOutput", cleaned);
   }
 });
 
-// Optional: ignore stderr to suppress error/noise
+// Ignore stderr to avoid clutter
 qProcess.stderr.on("data", () => {});
 
 qProcess.on("close", () => {
