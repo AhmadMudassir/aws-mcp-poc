@@ -1,41 +1,50 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Q CLI Live Chat</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Q CLI Stream Chat</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #chat-box {
+      border: 1px solid #ccc;
+      padding: 10px;
+      height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap; /* preserve formatting & newlines */
+      font-family: monospace;
+      background: #f9f9f9;
+    }
+    #controls { margin-top: 10px; }
+  </style>
 </head>
 <body>
-  <div class="chat-container">
-    <h1>Amazon Q CLI Chat</h1>
-    <div id="output" class="chat-box"></div>
-    <div class="input-container">
-      <input id="question" type="text" placeholder="Type your question..." />
-      <button id="sendBtn">Ask</button>
-    </div>
+  <h2>Q CLI Live Stream</h2>
+  <div id="chat-box"></div>
+  <div id="controls">
+    <input type="text" id="question" placeholder="Ask something..." style="width: 300px;">
+    <button id="send-btn">Send</button>
   </div>
 
   <script>
-    function startStream(question) {
-      const output = document.getElementById("output");
-      output.innerHTML = ""; // Clear previous output
+    const chatBox = document.getElementById("chat-box");
 
-      const evtSource = new EventSource(`/stream?q=${encodeURIComponent(question)}`);
-      evtSource.onmessage = function(event) {
-        if (event.data === "[DONE]") {
-          evtSource.close();
-        } else {
-          output.textContent += event.data + "\n";
-          output.scrollTop = output.scrollHeight;
-        }
-      };
+    function appendMessage(text) {
+      chatBox.textContent += text; // Append preserving format
+      chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    document.getElementById("sendBtn").addEventListener("click", () => {
-      const question = document.getElementById("question").value.trim();
-      if (question) {
-        startStream(question);
-      }
+    document.getElementById("send-btn").addEventListener("click", () => {
+      chatBox.textContent = ""; // Clear chat box
+      const question = document.getElementById("question").value;
+      const eventSource = new EventSource(`/stream?q=${encodeURIComponent(question)}`);
+
+      eventSource.onmessage = (event) => {
+        if (event.data === "[DONE]") {
+          eventSource.close();
+          return;
+        }
+        // Parse JSON string to restore newlines/spaces
+        appendMessage(JSON.parse(event.data));
+      };
     });
   </script>
 </body>
