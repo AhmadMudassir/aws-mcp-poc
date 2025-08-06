@@ -9,45 +9,43 @@ const server = http.createServer(app);
 const io = socketIo(server);
 const PORT = 3001;
 
-// --- CLEAN FUNCTION ---
-function cleanOutput(data) {
-  let text = data.toString();
-
-  // Remove ANSI escape codes but keep spacing
-  text = text.replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, " ");
-
-  // Convert multiple spaces/tabs into one
-  text = text.replace(/\s+/g, " ");
-
-  // Remove spinner frames
-  text = text.replace(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/g, "");
-
-  // Remove banners, Thinking..., etc.
-  text = text.replace(/ERROR:.*|Thinking\.\.\.|All tools are now trusted.*|🤖.*$/gm, "");
-
-  // Remove empty lines
-  text = text.split("\n").filter(line => line.trim() !== "").join("\n");
-
-  return text.trim();
-}
-
-
-// Serve frontend
 app.use(express.static(path.join(__dirname, "public")));
 
-// Persistent Q CLI process
+// Spawn persistent Q CLI session
 const qProcess = spawn("bash", ["-i", "-c", "q chat --trust-all-tools"], {
   stdio: ["pipe", "pipe", "pipe"]
 });
 
+// Function to filter out junk and keep only assistant chat lines
+function extractChatOnly(data) {
+  let text = data.toString();
+
+  // Remove ANSI escape sequences (color codes, cursor moves, etc.)
+  text = text.replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, " ");
+
+  // Keep only lines starting with "> " (assistant's reply)
+  const matches = text.match(/(^|\n)>\s+[^\n]+/g);
+  if (!matches) return "";
+
+  // Clean each line: remove "> " prefix, collapse spaces
+  return matches
+    .map(line => line.replace(/^>\s+/, "").trim())
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 qProcess.stdout.on("data", (chunk) => {
-  const cleaned = cleanOutput(chunk);
-  if (cleaned) io.emit("cliOutput", cleaned);
+  const chatText = extractChatOnly(chunk);
+  if (chatText) {
+    io.emit("cliOutput", chatText);
+  }
 });
 
 qProcess.stderr.on("data", (chunk) => {
-  const cleaned = cleanOutput(chunk);
-  if (cleaned) io.emit("cliOutput", cleaned);
+  // Still emit errors, but strip ANSI codes
+  const err = chunk.toString().replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, " ").trim();
+  if (err) io.emit("cliOutput", `ERROR: ${err}`);
 });
 
 qProcess.on("close", () => {
