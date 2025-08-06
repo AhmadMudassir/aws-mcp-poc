@@ -15,14 +15,17 @@ app.use(express.static(path.join(__dirname, "public")));
 function cleanOutput(data) {
   return data
     .toString()
-    .replace(/\x1B\[[0-9;]*[A-Za-z]/g, "") // Remove ANSI codes
+    .replace(/\x1B\[[0-9;]*[A-Za-z]/g, "")        // Remove ANSI codes
     .replace(/⠋|⠙|⠹|⠸|⠼|⠴|⠦|⠧|⠇|⠏/g, "") // Remove spinners
-    .replace(/^ERROR:.*$/gm, "") // Remove error lines
-    .replace(/\[0m|\[39m|\[22m/g, "") // Remove ANSI reset leftovers
-    .replace(/(\S)\n(\S)/g, "$1 $2") // Merge line breaks inside sentences
-    .replace(/\n{3,}/g, "\n\n") // Keep paragraph breaks
+    .replace(/^ERROR:.*$/gm, "")                  // Remove error lines
+    .replace(/\[0m|\[39m|\[22m/g, "")             // Remove ANSI reset leftovers
+    .replace(/\r\n/g, "\n")                       // Normalize Windows newlines
+    .replace(/\r/g, "\n")                         // Normalize carriage returns
+    .replace(/([^\n])\n(?!\n)/g, "$1 ")           // Merge single newlines into spaces
+    .replace(/\n{3,}/g, "\n\n")                   // Keep big paragraph breaks
     .trim();
 }
+
 
 
 // Start Q CLI session
