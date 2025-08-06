@@ -15,13 +15,15 @@ app.use(express.static(path.join(__dirname, "public")));
 function cleanOutput(data) {
   return data
     .toString()
-    .replace(/\x1B\[[0-9;]*[A-Za-z]/g, "") // ANSI codes
-    .replace(/⠋|⠙|⠹|⠸|⠼|⠴|⠦|⠧|⠇|⠏/g, "") // spinners
-    .replace(/^ERROR:.*$/gm, "") // ERROR lines
-    .replace(/\[0m|\[39m|\[22m/g, "") // ANSI reset leftovers
-    .replace(/\n{3,}/g, "\n\n") // collapse blank lines
+    .replace(/\x1B\[[0-9;]*[A-Za-z]/g, "") // Remove ANSI codes
+    .replace(/⠋|⠙|⠹|⠸|⠼|⠴|⠦|⠧|⠇|⠏/g, "") // Remove spinners
+    .replace(/^ERROR:.*$/gm, "") // Remove error lines
+    .replace(/\[0m|\[39m|\[22m/g, "") // Remove ANSI reset leftovers
+    .replace(/(\S)\n(\S)/g, "$1 $2") // Merge line breaks inside sentences
+    .replace(/\n{3,}/g, "\n\n") // Keep paragraph breaks
     .trim();
 }
+
 
 // Start Q CLI session
 const qProcess = spawn("bash", ["-i", "-c", "q chat --trust-all-tools"], {
