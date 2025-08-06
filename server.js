@@ -15,18 +15,30 @@ app.use(express.static(path.join(__dirname, "public")));
 function cleanOutput(data) {
   return data
     .toString()
-    .replace(/\x1B\[[0-9;]*[A-Za-z]/g, "")         // Remove ANSI codes
-    .replace(/⠋|⠙|⠹|⠸|⠼|⠴|⠦|⠧|⠇|⠏/g, "")  // Remove spinners
-    .replace(/^ERROR:.*$/gm, "")                   // Remove error lines
-    .replace(/\[0m|\[39m|\[22m/g, "")              // Remove ANSI reset leftovers
-    .replace(/\r\n/g, "\n")                        // Normalize Windows newlines
-    .replace(/\r/g, "\n")                          // Normalize carriage returns
-    .replace(/([^\n])\n(?!\n)/g, "$1 ")            // Merge single newlines into spaces
-    .replace(/\b'\s+ll\b/g, "'ll")                 // Fix I'll contractions
-    .replace(/\s{2,}/g, " ")                       // Collapse extra spaces
-    .replace(/\n{3,}/g, "\n\n")                    // Keep big paragraph breaks
+    // Remove ANSI codes and spinners
+    .replace(/\x1B\[[0-9;]*[A-Za-z]/g, "")
+    .replace(/⠋|⠙|⠹|⠸|⠼|⠴|⠦|⠧|⠇|⠏/g, "")
+    .replace(/^ERROR:.*$/gm, "")
+    .replace(/\[0m|\[39m|\[22m/g, "")
+    // Normalize line breaks
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    // Merge single newlines into spaces
+    .replace(/([^\n])\n(?!\n)/g, "$1 ")
+    // Fix common English contractions
+    .replace(/\b'\s+ll\b/gi, "'ll")
+    .replace(/\b'\s+re\b/gi, "'re")
+    .replace(/\b'\s+ve\b/gi, "'ve")
+    .replace(/\b'\s+d\b/gi, "'d")
+    .replace(/\b'\s+s\b/gi, "'s")
+    .replace(/\b'\s+em\b/gi, "'em")
+    // Collapse multiple spaces
+    .replace(/\s{2,}/g, " ")
+    // Keep paragraph breaks
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
+
 
 
 
