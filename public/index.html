@@ -5,7 +5,7 @@
   <title>Q CLI Live Chat (WebSockets)</title>
   <style>
     body {
-      font-family: monospace;
+      font-family: Arial, sans-serif;
       background: #000;
       color: #fff;
       margin: 0;
@@ -20,17 +20,17 @@
       flex: 1;
       overflow-y: auto;
       padding: 10px;
-      white-space: pre-wrap;
+      background: #111;
     }
     .input-container {
       display: flex;
-      background: #111;
+      background: #222;
       padding: 5px;
     }
     #question {
       flex: 1;
       padding: 10px;
-      background: #222;
+      background: #333;
       color: white;
       border: none;
     }
@@ -40,6 +40,9 @@
       padding: 10px;
       cursor: pointer;
       color: white;
+    }
+    .message {
+      margin: 5px 0;
     }
   </style>
 </head>
@@ -54,6 +57,7 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
     const socket = io();
     const output = document.getElementById("output");
@@ -61,14 +65,21 @@
     const sendBtn = document.getElementById("sendBtn");
 
     socket.on("cliOutput", (data) => {
-      output.textContent += data;
+      const div = document.createElement("div");
+      div.classList.add("message");
+      div.innerHTML = marked.parse(data); // Render as Markdown
+      output.appendChild(div);
       output.scrollTop = output.scrollHeight;
     });
 
     sendBtn.onclick = () => {
       const question = questionInput.value.trim();
       if (question) {
-        output.textContent += `\n> ${question}\n`;
+        const div = document.createElement("div");
+        div.classList.add("message");
+        div.innerHTML = `<strong>> ${question}</strong>`;
+        output.appendChild(div);
+
         socket.emit("askQuestion", question);
         questionInput.value = "";
       }
