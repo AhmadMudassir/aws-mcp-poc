@@ -1,33 +1,47 @@
 const express = require("express");
 const { spawn } = require("child_process");
 const cors = require("cors");
+const readline = require("readline");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-function cleanOutput(raw) {
-  return raw
-    .split("\n")
-    .filter(line => line.trim() !== "")
-    .join("\n")
-    .trim();
-}
-
 app.post("/query", (req, res) => {
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+
   const question = req.body.question;
-  let output = "";
 
-  const cmd = spawn(
-    "bash",
-    ["-i", "-c", `q chat --no-interactive --trust-all-tools "${question}"`],
-    {
-      env: process.env // inherits EC2's metadata credentials
+  const cmd = spawn("bash", [
+    "-i",
+    "-c",
+    `q chat --no-color --no-interactive --trust-all-tools "${question}"`
+  ], { env: process.env });
+
+  const rl = readline.createInterface({ input: cmd.stdout });
+
+  rl.on("line", (line) => {
+    // Filter noisy lines in real-time
+    if (
+      line.trim() === "" ||
+      line.includes("/help") ||
+      line.includes("Did you know?") ||
+      line.includes("All tools are now trusted") ||
+      line.startsWith("🛠️") ||
+      line.startsWith("⋮") ||
+      line.startsWith("●") ||
+      line.startsWith("╭") ||
+      line.startsWith("╰") ||
+      line.startsWith("│") ||
+      line.startsWith("⢠") ||
+      line.startsWith("⣿") ||
+      line.startsWith("━━━━━━━━")
+    ) {
+      return; // skip noise
     }
-  );
 
-  cmd.stdout.on("data", (data) => {
-    output += data.toString();
+    // Stream clean output to the client
+    res.write(line + "\n");
   });
 
   cmd.stderr.on("data", (data) => {
@@ -35,7 +49,7 @@ app.post("/query", (req, res) => {
   });
 
   cmd.on("close", () => {
-    res.json({ result: cleanOutput(output) });
+    res.end();
   });
 });
 
