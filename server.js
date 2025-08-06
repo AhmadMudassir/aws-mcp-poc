@@ -15,16 +15,19 @@ app.use(express.static(path.join(__dirname, "public")));
 function cleanOutput(data) {
   return data
     .toString()
-    .replace(/\x1B\[[0-9;]*[A-Za-z]/g, "")        // Remove ANSI codes
-    .replace(/⠋|⠙|⠹|⠸|⠼|⠴|⠦|⠧|⠇|⠏/g, "") // Remove spinners
-    .replace(/^ERROR:.*$/gm, "")                  // Remove error lines
-    .replace(/\[0m|\[39m|\[22m/g, "")             // Remove ANSI reset leftovers
-    .replace(/\r\n/g, "\n")                       // Normalize Windows newlines
-    .replace(/\r/g, "\n")                         // Normalize carriage returns
-    .replace(/([^\n])\n(?!\n)/g, "$1 ")           // Merge single newlines into spaces
-    .replace(/\n{3,}/g, "\n\n")                   // Keep big paragraph breaks
+    .replace(/\x1B\[[0-9;]*[A-Za-z]/g, "")         // Remove ANSI codes
+    .replace(/⠋|⠙|⠹|⠸|⠼|⠴|⠦|⠧|⠇|⠏/g, "")  // Remove spinners
+    .replace(/^ERROR:.*$/gm, "")                   // Remove error lines
+    .replace(/\[0m|\[39m|\[22m/g, "")              // Remove ANSI reset leftovers
+    .replace(/\r\n/g, "\n")                        // Normalize Windows newlines
+    .replace(/\r/g, "\n")                          // Normalize carriage returns
+    .replace(/([^\n])\n(?!\n)/g, "$1 ")            // Merge single newlines into spaces
+    .replace(/\b'\s+ll\b/g, "'ll")                 // Fix I'll contractions
+    .replace(/\s{2,}/g, " ")                       // Collapse extra spaces
+    .replace(/\n{3,}/g, "\n\n")                    // Keep big paragraph breaks
     .trim();
 }
+
 
 
 
