@@ -32,15 +32,16 @@
     word-break: break-word;
   }
   .message.user {
-    text-align: right;
     background-color: #161b22;
     color: #0f0;
     margin-left: auto;
+    margin-right: 0;
+    text-align: left; /* keep text left */
   }
   .message.assistant {
-    text-align: left;
     background-color: #1c1f26;
     color: #ddd;
+    text-align: left;
   }
   .markdown-body {
     background-color: transparent !important;
@@ -84,26 +85,15 @@
 </div>
 
 <script>
-  // Function to detect Markdown
   function isMarkdownMessage(text) {
     const trimmed = text.trim();
     const mdPatterns = [
-      /^#{1,6}\s/,                   // Headings
-      /^\|.*\|/,                      // Tables
-      /\|[-:]+\|/,                    // Table header
-      /\*\*.*\*\*/,                   // Bold
-      /\*[^*]+\*/,                    // Italic
-      /^> /,                          // Blockquote
-      /```[\s\S]*```/,                 // Code block
-      /^- /m,                         // Bullet list
-      /^(\d+\.\s)/m,                  // Numbered list
-      /^📊/,                          // Emoji start
-      /\.md$/i                        // .md filename
+      /^#{1,6}\s/, /^\|.*\|/, /\|[-:]+\|/, /\*\*.*\*\*/, /\*[^*]+\*/,
+      /^> /, /```[\s\S]*```/, /^- /m, /^(\d+\.\s)/m, /^📊/, /\.md$/i
     ];
     return mdPatterns.some((pattern) => pattern.test(trimmed));
   }
 
-  // Function to render messages
   function renderMessage(role, text) {
     const chatContainer = document.getElementById("chat-container");
     const messageDiv = document.createElement("div");
@@ -119,17 +109,19 @@
     chatContainer.scrollTop = chatContainer.scrollHeight;
   }
 
-  // Example conversation for testing
-  renderMessage("assistant", "## Daily Cost Summary\n\n| Date | Cost |\n|------|------|\n| Aug 1 | $18.17 |\n| Aug 2 | $13.34 |\n| Aug 3 | $13.56 |\n\n**Key Insights:**\n- Trend Cloud One is 93% of costs\n- AWS native services minimal usage");
-  renderMessage("assistant", "Using tool: get_today_date (trusted) from mcp server ce");
-  renderMessage("user", "Show me the AWS bill for yesterday");
-
-  // Send button handler
-  document.getElementById("send-btn").addEventListener("click", () => {
+  function sendMessage() {
     const input = document.getElementById("user-input");
     if (!input.value.trim()) return;
     renderMessage("user", input.value);
     input.value = "";
+  }
+
+  document.getElementById("send-btn").addEventListener("click", sendMessage);
+  document.getElementById("user-input").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      sendMessage();
+    }
   });
 </script>
 
