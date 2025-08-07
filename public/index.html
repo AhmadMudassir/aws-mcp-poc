@@ -66,17 +66,42 @@
     text-align: left;
     color: #0f0;
   }
-  .markdown-body {
+  /* Normal code block/table fix */
+  /* Handles overflow + keeps layout tidy */
+  .markdown-body table,
+  .markdown-body pre {
+    overflow-x: auto;
+    display: block;
+    max-width: 100%;
+    white-space: pre-wrap; /* <-- allows wrapping inside code blocks */
+    word-wrap: break-word;
+  }
+
+  /* Code block style */
+  .markdown-body pre {
     background-color: #111;
     border: 1px solid #333;
-    padding: 10px;
-    border-radius: 8px;
-    font-family: Consolas, monospace;
-    font-size: 0.95rem;
+    border-radius: 6px;
+    padding: 12px;
     color: #eee;
-    overflow-x: auto;
-    margin-bottom: 20px;
+    font-size: 0.95rem;
+    font-family: Consolas, monospace;
+    line-height: 1.5;
   }
+
+  /* Normalize heading size inside code blocks */
+  .markdown-body pre h1,
+  .markdown-body pre h2,
+  .markdown-body pre h3,
+  .markdown-body pre h4,
+  .markdown-body pre h5,
+  .markdown-body pre h6 {
+    font-size: 1rem;
+    font-weight: bold;
+    margin: 0.5em 0;
+  }
+
+
 
 </style>
 </head>
